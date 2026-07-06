@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -28,16 +28,29 @@ def get_courses():
 @app.post("/courses")
 def add_course(course: CourseSchema):
     if next((c for c in courses_db if course.course_name.lower() == c.get("course_name").lower()), None):
-        new_course = {
-            "id": len(courses_db) + 1,
-            "course_name": course.course_name,
-            "duration_hours": course.duration_hours,
-            "price": course.price,
-            "status": "active",
-            "created_at": datetime.utcnow().isoformat() + "Z"
-        }
-        courses_db.append(new_course)
-        return {
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "statusCode": 400,
+                "message": "Lỗi: Tên khóa học này đã tồn tại trong danh mục đào tạo!",
+                "data": None,
+                "error": "ERR-EDU-01: Course name duplicates an existing record in memory array.",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "path": "/courses"
+            }
+        )
+    new_course = {
+        "id": len(courses_db) + 1,
+        "course_name": course.course_name,
+        "duration_hours": course.duration_hours,
+        "price": course.price,
+        "status": "active",
+        "created_at": datetime.utcnow().isoformat() + "Z"
+    }
+    courses_db.append(new_course)
+    raise HTTPException(
+        status_code=201,
+        detail={
             "statusCode": 201,
             "message": "Tạo mới khóa học thành công!",
             "data": new_course,
@@ -45,15 +58,7 @@ def add_course(course: CourseSchema):
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "path": "/courses"
         }
-    return {
-        "statusCode": 400,
-        "message": "Lỗi: Tên khóa học này đã tồn tại trong danh mục đào tạo!",
-        "data": None,
-        "error": "ERR-EDU-01: Course name duplicates an existing record in memory array.",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "path": "/courses"
-    }
-
+    )
 
 @app.delete("/courses/{course_id}")
 def delete_course(course_id: int):
@@ -68,11 +73,14 @@ def delete_course(course_id: int):
                 "timestamp": datetime.utcnow().isoformat() + "Z",
                 "path": "/courses/{course_id}"
             }
-    return {
-        "statusCode": 404,
-        "message": "Lỗi: Không tìm thấy mã khóa học yêu cầu để xóa!",
-        "data": None,
-        "error": "ERR-EDU-02: Target course ID can not be found.",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        "path": "/courses/{course_id}"
-    }
+    raise HTTPException(
+        status_code=404,
+        detail={
+            "statusCode": 404,
+            "message": "Lỗi: Không tìm thấy mã khóa học yêu cầu để xóa!",
+            "data": None,
+            "error": "ERR-EDU-02: Target course ID can not be found.",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "path": "/courses/{course_id}"
+        }
+    )
